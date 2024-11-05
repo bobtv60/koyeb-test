@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
+const cors = require('cors');
 
 const User = require('./models/user');
 
@@ -24,6 +25,7 @@ mongoose.connection.on('error', (err) => {
 
 // Middleware to parse JSON request bodies
 app.use(express.json());
+app.use(cors());
 
 // Example GET endpoint
 app.get('/api/hello', (req, res) => {
