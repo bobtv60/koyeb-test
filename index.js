@@ -36,7 +36,7 @@ app.post('/api/echo', (req, res) => {
   res.json({ received: data });
 });
 
-app.post('/signup', async (req, res) => {
+app.post('/api/signup', async (req, res) => {
     try {
         if (mongoose.connection.readyState !== 1) {
             return res.status(500).json({
