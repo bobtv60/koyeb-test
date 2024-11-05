@@ -36,6 +36,93 @@ app.post('/api/echo', (req, res) => {
   res.json({ received: data });
 });
 
+app.post('/signup', async (req, res) => {
+    try {
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(500).json({
+                status: "FAILED",
+                message: "Database connection not established, retry again later"
+            });
+        }
+        
+        let { name, email, password, dateOfBirth } = req.body;
+
+        // Trim and validate input
+        if (!name || !email || !password || !dateOfBirth) {
+            return res.status(400).json({
+                status: "FAILED",
+                message: "Empty input fields"
+            });
+        }
+
+        name = name.trim();
+        email = email.trim();
+        password = password.trim();
+        dateOfBirth = dateOfBirth.trim();
+
+        if (!/^[a-zA-Z ]+$/.test(name)) {
+            return res.status(400).json({
+                status: "FAILED",
+                message: "Invalid name entered"
+            });
+        }
+
+        if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
+            return res.status(400).json({
+                status: "FAILED",
+                message: "Invalid email entered"
+            });
+        }
+
+        if (isNaN(new Date(dateOfBirth).getTime())) {
+            return res.status(400).json({
+                status: "FAILED",
+                message: "Invalid date of birth entered"
+            });
+        }
+
+        if (password.length < 8) {
+            return res.status(400).json({
+                status: "FAILED",
+                message: "Password is too short"
+            });
+        }
+
+        // Check for existing user
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(409).json({
+                status: "FAILED",
+                message: "User with the provided email already exists"
+            });
+        }
+
+        // Hash password and save user
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        const newUser = new User({
+            name,
+            email,
+            password: hashedPassword,
+            dateOfBirth
+        });
+
+        const savedUser = await newUser.save();
+        return res.status(201).json({
+            status: "SUCCESS",
+            message: "Signup successful",
+            data: savedUser
+        });
+
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({
+            status: "FAILED",
+            message: "An error occurred during signup"
+        });
+    }
+});
+
 app.post('/api/signin', async (req, res) => {
     try {
         if (mongoose.connection.readyState !== 1) {
