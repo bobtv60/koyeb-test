@@ -7,6 +7,21 @@ const User = require('./models/user');
 const bcrypt = require('bcrypt');
 const user = require('./models/user');
 
+const mongoose = require('mongoose');
+
+mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+});
+
+mongoose.connection.on('connected', () => {
+    console.log('Connected to MongoDB');
+});
+
+mongoose.connection.on('error', (err) => {
+    console.error('Error connecting to MongoDB:', err);
+});
+
 // Middleware to parse JSON request bodies
 app.use(express.json());
 
@@ -23,6 +38,13 @@ app.post('/api/echo', (req, res) => {
 
 app.post('/api/signin', async (req, res) => {
     try {
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(500).json({
+                status: "FAILED",
+                message: "Database connection not established, retry again later"
+            });
+        }
+      
         let { email, password } = req.body;
 
         // Basic validation
