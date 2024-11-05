@@ -21,57 +21,52 @@ app.post('/api/echo', (req, res) => {
   res.json({ received: data });
 });
 
-app.post('/api/signin', (req, res) => {
-    let {email, password} = req.body;
-    email = email.trim();
-    password = password.trim();
+app.post('/api/signin', async (req, res) => {
+    try {
+        let { email, password } = req.body;
 
-    if (email == "" || password == "") {
-        res.json({
-            status: "FAILED",
-            message: "Empty credentials supplied"
-        })
-    } else {
-        user.find({email})
-        .then(data => {
-            if (data.length) {
-                const hashedPassword = data[0].password;
-                bcrypt.compare(password, hashedPassword).then(result => {
-                    if (result) {
-                        res.json({
-                            status: "SUCCESS",
-                            message: "Signin successful",
-                            data: data
-                        })
-                    } else {
-                        res.json({
-                            status: "FAILED",
-                            message: "Invalid password entered",
-                            data: data
-                        })
-                    }
-                })
-                .catch(err => {
-                    res.json({
-                        status: "FAILED",
-                        message: "An error occured while comparing passwords"
-                    })
-                })
-            } else {
-                res.json({
-                    status: "FAILED",
-                    message: "Invalid credentials entered"
-                })
-            }
-        })
-        .catch(err => {
-            res.json({
+        // Basic validation
+        if (!email || !password) {
+            return res.status(400).json({
                 status: "FAILED",
-                message: "An error occured while checking for existing user"
-            })
-        })
+                message: "Empty credentials supplied"
+            });
+        }
+
+        email = email.trim();
+        password = password.trim();
+
+        // Find user by email
+        const data = await user.find({ email });
+        if (!data.length) {
+            return res.status(401).json({
+                status: "FAILED",
+                message: "Invalid credentials entered"
+            });
+        }
+
+        // Compare passwords
+        const isMatch = await bcrypt.compare(password, data[0].password);
+        if (isMatch) {
+            return res.status(200).json({
+                status: "SUCCESS",
+                message: "Signin successful",
+                data: data
+            });
+        } else {
+            return res.status(401).json({
+                status: "FAILED",
+                message: "Invalid password entered"
+            });
+        }
+    } catch (err) {
+        console.error(err); // Log the error for debugging
+        return res.status(500).json({
+            status: "FAILED",
+            message: "An error occurred during the signin process"
+        });
     }
-})
+});
 
 
 // Start the server
